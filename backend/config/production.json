@@ -1,0 +1,5 @@
+{
+  "mongo_url": "mongodb://mongodb:27017/Bases",
+  "jwtSecret": "jwtSecret",
+  "tokenExpire": "2592000"
+}

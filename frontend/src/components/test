@@ -1,0 +1,341 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { Container, Button, Typography, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, TextField, MenuItem } from '@mui/material';
+import Navbar from './Navbar';
+import { Select, InputLabel, FormControl,Box } from "@mui/material";
+const AdminDashboard = () => {
+  const [exercices, setExercices] = useState([]);
+  const [conseils, setConseils] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingAction, setLoadingAction] = useState(false);
+  const [error, setError] = useState('');
+  
+  const [openAddExercice, setOpenAddExercice] = useState(false);
+  const [openEditExercice, setOpenEditExercice] = useState(false);
+  const [openAddConseil, setOpenAddConseil] = useState(false);
+  const [openEditConseil, setOpenEditConseil] = useState(false);
+
+  const [selectedExercice, setSelectedExercice] = useState(null);
+  const [selectedConseil, setSelectedConseil] = useState(null);
+
+  const [newExercice, setNewExercice] = useState({
+    nom: '',
+    description: '',
+    conseilId: '',
+    programmes: ['mince', 'normal', 'gros'],  // Programmes fixes
+    gif_file: null // Pour stocker le fichier GIF
+  });
+
+  const [newConseil, setNewConseil] = useState({
+    texte: ''
+  });
+
+  // Récupérer les exercices
+  const fetchExercices = () => {
+    setLoading(true);
+    axios.get('http://localhost:3001/admin/exercices')
+      .then(response => {
+        setExercices(response.data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error("Erreur lors de la récupération des exercices :", error);
+        setError('Erreur lors de la récupération des exercices.');
+        setLoading(false);
+      });
+  };
+
+  // Récupérer les conseils
+  const fetchConseils = () => {
+    setLoading(true);
+    axios.get('http://localhost:3001/admin/conseils')
+      .then(response => {
+        setConseils(response.data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error("Erreur lors de la récupération des conseils :", error);
+        setError('Erreur lors de la récupération des conseils.');
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchExercices();
+    fetchConseils();
+  }, []);
+
+  // Ajouter un exercice
+  const handleAddExercice = () => {
+    setLoadingAction(true);
+    const formData = new FormData();
+    formData.append('nom', newExercice.nom);
+    formData.append('description', newExercice.description);
+    formData.append('conseilId', newExercice.conseilId);
+    formData.append('programmes', JSON.stringify(newExercice.programmes));
+   if (newExercice.gif_file) {
+      formData.append('gif_file', newExercice.gif_file);
+    }
+
+    axios.post('http://localhost:3001/admin/exercices/add', formData)
+      .then(() => {
+        fetchExercices();
+        setOpenAddExercice(false);
+        setLoadingAction(false);
+      })
+      .catch(error => {
+        console.error("Erreur lors de l'ajout de l'exercice :", error);
+        setError('Erreur lors de l\'ajout de l\'exercice.');
+        setLoadingAction(false);
+      });
+  };
+
+  const handleEditExercice = () => {
+    setLoadingAction(true);
+  
+    // Upload d'abord le fichier (si changé)
+    const uploadGifAndEdit = async () => {
+      try {
+        let gifPath = newExercice.gif_path || ''; // ancien chemin si pas de nouveau
+  
+        if (newExercice.gif_file) {
+          const formData = new FormData();
+          formData.append('file', newExercice.gif_file);
+  
+          const response = await axios.post('http://localhost:3001/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+  
+          gifPath = response.data.filePath; // supposer que backend retourne { filePath: "uploads/gifs/..." }
+        }
+  
+        // Puis on envoie la mise à jour de l'exercice
+        const updatedExercice = {
+          nom: newExercice.nom,
+          description: newExercice.description,
+          conseilId: newExercice.conseilId,
+          programmes: newExercice.programmes,
+          gifPath: gifPath
+        };
+  
+        await axios.put(
+          `http://localhost:3001/admin/exercices/${selectedExercice._id}`,
+          updatedExercice
+        );
+  
+        fetchExercices();
+        setOpenEditExercice(false);
+      } catch (error) {
+        console.error("Erreur lors de la modification de l'exercice :", error);
+        setError("Erreur lors de la modification de l'exercice.");
+      } finally {
+        setLoadingAction(false);
+      }
+    };
+  
+    uploadGifAndEdit();
+  };
+  
+
+  // Supprimer un exercice
+  const handleDeleteExercice = (id) => {
+    setLoadingAction(true);
+    axios.delete(`http://localhost:3001/admin/exercices/${id}`)
+      .then(() => {
+        fetchExercices();
+        setLoadingAction(false);
+      })
+      .catch(error => {
+        console.error("Erreur lors de la suppression de l'exercice :", error);
+        setError('Erreur lors de la suppression de l\'exercice.');
+        setLoadingAction(false);
+      });
+  };
+
+  // Ajouter un conseil
+  const handleAddConseil = () => {
+    setLoadingAction(true);
+    axios.post('http://localhost:3001/admin/conseils/add', newConseil)
+      .then(() => {
+        fetchConseils();
+        setOpenAddConseil(false);
+        setLoadingAction(false);
+      })
+      .catch(error => {
+        console.error("Erreur lors de l'ajout du conseil :", error);
+        setError('Erreur lors de l\'ajout du conseil.');
+        setLoadingAction(false);
+      });
+  };
+
+  // Modifier un conseil
+  const handleEditConseil = () => {
+    setLoadingAction(true);
+    axios.put(`http://localhost:3001/admin/conseils/${selectedConseil._id}`, newConseil)
+      .then(() => {
+        fetchConseils();
+        setOpenEditConseil(false);
+        setLoadingAction(false);
+      })
+      .catch(error => {
+        console.error("Erreur lors de la modification du conseil :", error);
+        setError('Erreur lors de la modification du conseil.');
+        setLoadingAction(false);
+      });
+  };
+
+  // Supprimer un conseil
+  const handleDeleteConseil = (id) => {
+    setLoadingAction(true);
+    axios.delete(`http://localhost:3001/admin/conseils/${id}`)
+      .then(() => {
+        fetchConseils();
+        setLoadingAction(false);
+      })
+      .catch(error => {
+        console.error("Erreur lors de la suppression du conseil :", error);
+        setError('Erreur lors de la suppression du conseil.');
+        setLoadingAction(false);
+      });
+  };
+
+  return (
+    <Box sx={{ display: "flex" }}>
+    <Navbar />
+    <Container>
+  
+      <Typography variant="h4" gutterBottom>Tableau de bord Admin</Typography>
+      
+      <Button variant="contained" color="primary" onClick={() => setOpenAddExercice(true)}>Ajouter un Exercice</Button>
+      <Button variant="contained" color="secondary" onClick={() => setOpenAddConseil(true)}>Ajouter un Conseil</Button>
+
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <div>
+          <Typography variant="h6" gutterBottom>Liste des Exercices</Typography>
+          {exercices.map((exercice) => (
+            <div key={exercice._id}>
+              <Typography>{exercice.nom}</Typography>
+              <Button color="primary" onClick={() => {
+                setSelectedExercice(exercice);
+                setNewExercice(exercice);
+                setOpenEditExercice(true);
+              }}>Modifier</Button>
+              <Button color="secondary" onClick={() => handleDeleteExercice(exercice._id)}>Supprimer</Button>
+            </div>
+          ))}
+
+          <Typography variant="h6" gutterBottom>Liste des Conseils</Typography>
+          {conseils.map((conseil) => (
+            <div key={conseil._id}>
+              <Typography>{conseil.texte}</Typography>
+              <Button color="primary" onClick={() => {
+                setSelectedConseil(conseil);
+                setNewConseil(conseil);
+                setOpenEditConseil(true);
+              }}>Modifier</Button>
+              <Button color="secondary" onClick={() => handleDeleteConseil(conseil._id)}>Supprimer</Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Ajouter Exercice Dialog */}
+      <Dialog open={openAddExercice} onClose={() => setOpenAddExercice(false)}>
+        <DialogTitle>Ajouter un Exercice</DialogTitle>
+        <DialogContent>
+          <TextField label="Nom" fullWidth margin="dense" value={newExercice.nom} onChange={(e) => setNewExercice({ ...newExercice, nom: e.target.value })} />
+          <TextField label="Description" fullWidth margin="dense" value={newExercice.description} onChange={(e) => setNewExercice({ ...newExercice, description: e.target.value })} />
+          <InputLabel id="conseil-select-label">Conseil</InputLabel>
+          <Select
+    labelId="conseil-select-label"
+    value={newExercice.conseilId}
+    label="Conseil"
+    onChange={(e) =>
+      setNewExercice({ ...newExercice, conseilId: e.target.value })
+    }
+  >
+    {conseils.map((conseil) => (
+      <MenuItem key={conseil._id} value={conseil._id}>
+        {conseil.texte}
+      </MenuItem>
+    ))}
+  </Select>
+          <input
+            type="file"
+            accept="image/gif"
+            onChange={(e) => setNewExercice({ ...newExercice, gif_file: e.target.files[0] })}
+            style={{ marginTop: '10px' }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAddExercice(false)} color="secondary">Annuler</Button>
+          <Button onClick={handleAddExercice} color="primary">Ajouter</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modifier Exercice Dialog */}
+      <Dialog open={openEditExercice} onClose={() => setOpenEditExercice(false)}>
+        <DialogTitle>Modifier un Exercice</DialogTitle>
+        <DialogContent>
+          <TextField label="Nom" fullWidth margin="dense" value={newExercice.nom} onChange={(e) => setNewExercice({ ...newExercice, nom: e.target.value })} />
+          <TextField label="Description" fullWidth margin="dense" value={newExercice.description} onChange={(e) => setNewExercice({ ...newExercice, description: e.target.value })} />
+          <TextField select label="Conseil" fullWidth margin="dense" value={newExercice.conseilId} onChange={(e) => setNewExercice({ ...newExercice, conseilId: e.target.value })}>
+            {conseils.map((conseil) => (
+              <MenuItem key={conseil._id} value={conseil._id}>{conseil.texte}</MenuItem>
+            ))}
+          </TextField>
+          <input
+            type="file"
+            accept="image/gif"
+            onChange={(e) => setNewExercice({ ...newExercice, gif_file: e.target.files[0] })}
+            style={{ marginTop: '10px' }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditExercice(false)} color="secondary">Annuler</Button>
+          <Button onClick={handleEditExercice} color="primary">Modifier</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Ajouter Conseil Dialog */}
+      <Dialog open={openAddConseil} onClose={() => setOpenAddConseil(false)}>
+        <DialogTitle>Ajouter un Conseil</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Conseil"
+            fullWidth
+            margin="dense"
+            value={newConseil.texte}
+            onChange={(e) => setNewConseil({ ...newConseil, texte: e.target.value })}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAddConseil(false)} color="secondary">Annuler</Button>
+          <Button onClick={handleAddConseil} color="primary">Ajouter</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modifier Conseil Dialog */}
+      <Dialog open={openEditConseil} onClose={() => setOpenEditConseil(false)}>
+        <DialogTitle>Modifier un Conseil</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Conseil"
+            fullWidth
+            margin="dense"
+            value={newConseil.texte}
+            onChange={(e) => setNewConseil({ ...newConseil, texte: e.target.value })}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditConseil(false)} color="secondary">Annuler</Button>
+          <Button onClick={handleEditConseil} color="primary">Modifier</Button>
+        </DialogActions>
+      </Dialog>
+    </Container></Box>
+  );
+};
+
+export default AdminDashboard;

@@ -1,0 +1,62 @@
+services:
+  mongodb:
+    image: mongo:6
+    container_name: mern-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: secretpassword
+      MONGO_INITDB_DATABASE: mern_db
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - mern-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: mern-backend
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      MONGO_URL: mongodb://admin:secretpassword@mongodb:27017/mern_db?authSource=admin
+      PORT: 5000
+      JWT_SECRET: changeme-in-docker-compose
+      TOKEN_EXPIRE: "2592000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - mern-network
+    volumes:
+      - ./backend/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build: ./frontend
+    container_name: mern-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - mern-network
+    environment:
+      BACKEND_UPSTREAM: backend:5000
+
+networks:
+  mern-network:
+    driver: bridge
+
+volumes:
+  mongo-data:

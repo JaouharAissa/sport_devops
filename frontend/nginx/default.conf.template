@@ -1,0 +1,23 @@
+server {
+  listen 80;
+  server_name _;
+
+  # React Router SPA fallback
+  location / {
+    root /usr/share/nginx/html;
+    index index.html;
+    try_files $uri $uri/ /index.html;
+  }
+
+  # API reverse proxy (Docker Compose + K8s).
+  # BACKEND_UPSTREAM example:
+  # - docker-compose: backend:5000
+  # - kubernetes: backend-service:5000
+  location ~ ^/(users|produits|admin|uploads|health|metrics)(/.*)?$ {
+    proxy_pass http://${BACKEND_UPSTREAM};
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
