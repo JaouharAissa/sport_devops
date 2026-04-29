@@ -144,3 +144,19 @@ Application ArgoCD:
 5. vérifier ArgoCD: app `Healthy` + `Synced`
 6. vérifier dashboard Grafana + alerte Prometheus
 
+## Automation (one-command)
+
+### Windows (PowerShell)
+- validation complète: `.\scripts\validate.ps1`
+- déploiement k8s: `.\scripts\deploy-k8s.ps1`
+
+### Linux/Ubuntu
+- validation complète: `bash scripts/validate.sh`
+- déploiement k8s: `bash scripts/deploy-k8s.sh`
+
+### npm root shortcuts
+- `npm run bootstrap`
+- `npm run validate`
+- `npm run docker:up`
+- `npm run docker:down`
+

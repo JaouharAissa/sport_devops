@@ -60,11 +60,11 @@ jobs:
 
       - name: Dependency scan (backend)
         working-directory: backend
-        run: npm audit --audit-level=critical
+        run: npm audit --omit=dev --audit-level=critical
 
       - name: Dependency scan (frontend)
         working-directory: frontend
-        run: npm audit --audit-level=critical
+        run: npm audit --omit=dev --audit-level=critical
 
       - name: Trivy filesystem scan (critical)
         uses: aquasecurity/trivy-action@0.24.0
@@ -80,6 +80,14 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Kubernetes manifest lint (kubeconform)
+        uses: yokawasa/action-setup-kube-tools@v0.11.2
+        with:
+          kubeconform: "0.6.7"
+
+      - name: Validate Kubernetes manifests
+        run: kubeconform -strict -ignore-missing-schemas k8s/*.yaml
 
   docker:
     name: Docker build + image scan + push

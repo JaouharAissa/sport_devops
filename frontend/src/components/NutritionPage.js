@@ -152,7 +152,6 @@ const NutritionPage = () => {
       // Récupérer l'userId du localStorage
       const userId = localStorage.getItem('userId');
       
-      const response = await axios.post(
       const response = await api.post(
         '/users/user/nutrition',
         { userId },

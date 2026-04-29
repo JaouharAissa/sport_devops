@@ -21,8 +21,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --passWithNoTests --watchAll=false",
-    "test:ci": "CI=true react-scripts test --passWithNoTests --coverage",
-    "lint": "eslint src/**/*.{js,jsx} --no-error-on-unmatched-pattern || true",
+    "test:ci": "cross-env CI=true react-scripts test --passWithNoTests --coverage",
+    "lint": "eslint src/**/*.{js,jsx} --no-error-on-unmatched-pattern",
     "lint:fix": "eslint src/**/*.{js,jsx} --fix --no-error-on-unmatched-pattern",
     "eject": "react-scripts eject"
   },
@@ -46,6 +46,8 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@testing-library/jest-dom": "^6.6.3",
+    "cross-env": "^10.1.0",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.0"
   }
