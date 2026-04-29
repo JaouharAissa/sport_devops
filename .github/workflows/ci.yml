@@ -46,6 +46,7 @@ jobs:
         working-directory: backend
         run: npm run test:ci
 
+<<<<<<< HEAD
       - name: Frontend lint
         working-directory: frontend
         run: npm run lint
@@ -57,6 +58,10 @@ jobs:
       - name: Frontend build
         working-directory: frontend
         run: npm run build
+=======
+      - name: Build
+        run: CI=false npm run build
+>>>>>>> bbeef44 (fix(ci): repair backend/frontend pipeline and tests)
 
       - name: Dependency scan (backend)
         working-directory: backend
