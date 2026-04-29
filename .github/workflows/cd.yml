@@ -1,0 +1,41 @@
+name: CD GitOps
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  update-manifests:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set lowercase owner
+        id: owner
+        run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Update backend image tag in k8s manifests
+        run: |
+          sed -i "s|image: ghcr.io/.*/sport_devops-backend:.*|image: ghcr.io/${{ steps.owner.outputs.owner_lc }}/sport_devops-backend:${{ github.event.workflow_run.head_sha }}|g" k8s/backend-deployment.yaml
+
+      - name: Update frontend image tag in k8s manifests
+        run: |
+          sed -i "s|image: ghcr.io/.*/sport_devops-frontend:.*|image: ghcr.io/${{ steps.owner.outputs.owner_lc }}/sport_devops-frontend:${{ github.event.workflow_run.head_sha }}|g" k8s/frontend-deployment.yaml
+
+      - name: Commit and push updated manifests
+        run: |
+          if git diff --quiet; then
+            echo "No manifest changes to commit"
+            exit 0
+          fi
+          git add k8s/backend-deployment.yaml k8s/frontend-deployment.yaml
+          git commit -m "chore(cd): update k8s images to ${{ github.event.workflow_run.head_sha }}"
+          git push

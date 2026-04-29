@@ -85,12 +85,62 @@ kubectl apply -f k8s/ingress.yaml
 ## CI (GitHub Actions)
 
 Workflow: `.github/workflows/ci.yml`
-- Lint + tests backend
-- Lint + tests + build frontend
-- Build Docker images (validation)
+- lint + tests + build (backend/frontend)
+- scan sécurité dépendances (`npm audit`)
+- scan sécurité code/filesystem (`Trivy fs`)
+- analyse qualité **SonarQube**
+- build + scan images Docker (Trivy image)
+- push images vers GHCR
+
+### Secrets GitHub requis
+- `SONAR_TOKEN`
+- `SONAR_HOST_URL`
+
+Le pipeline est configuré pour **échouer** en cas d'erreurs qualité/sécurité critique.
+
+## CD GitOps (ArgoCD)
+
+Workflow: `.github/workflows/cd.yml`
+- déclenché automatiquement après CI réussie sur `main`
+- met à jour les tags d'images dans `k8s/*.yaml` avec le commit SHA
+- commit + push automatique des manifests
+- ArgoCD synchronise automatiquement le cluster
+
+Application ArgoCD:
+- `k8s/argocd-application.yaml`
+- sync policy: `automated + prune + selfHeal`
 
 ## Observability
 
 - **/metrics** expose les métriques Node + histogramme HTTP (`fitness_http_request_duration_seconds`)
-- Pour Prometheus Operator, tu pourras remplacer les annotations par un **ServiceMonitor**.
+- `k8s/servicemonitor-backend.yaml` pour Prometheus Operator
+- `k8s/prometheus-rule.yaml` pour alerting simple (backend down)
+
+## DevSecOps
+
+- SonarQube (qualité obligatoire)
+- scans dépendances (`npm audit`)
+- scans image (`Trivy`)
+- gestion des secrets:
+  - `k8s/jwt-secret.secret.yaml.example` versionné
+  - fichier réel `*.secret.yaml` ignoré par Git
+
+## Structure projet (conforme cahier de charge)
+
+- `frontend/`
+- `backend/`
+- `docker/`
+- `k8s/`
+- `.github/workflows/`
+- `docs/agile/`
+- `docs/improve.md`
+
+## Validation rapide avant soutenance
+
+1. `docker compose up --build`
+2. vérifier `http://localhost:5000/health`
+3. vérifier `http://localhost:5000/metrics`
+4. vérifier exécution CI/CD dans GitHub Actions
+5. vérifier ArgoCD: app `Healthy` + `Synced`
+6. vérifier dashboard Grafana + alerte Prometheus
 

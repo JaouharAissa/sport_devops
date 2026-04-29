@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: fitness-alerts
+  namespace: fitness
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: fitness-app.rules
+      rules:
+        - alert: FitnessBackendDown
+          expr: sum(up{namespace="fitness",service="backend-service"}) < 1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Backend service is down"
+            description: "No healthy backend target has been scraped for 2 minutes."

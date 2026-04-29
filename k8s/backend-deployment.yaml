@@ -19,8 +19,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: fitness-backend:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/jaouharaissa/sport_devops-backend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
           envFrom:
